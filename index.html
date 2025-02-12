@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedestal Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .form-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Pedestal Calculator</h1>
+        <form id="pedestalForm">
+            <!-- Step 1: Select Unit -->
+            <label for="unit">Select Unit:</label>
+            <select id="unit" required>
+                <option value="">-- Select Unit --</option>
+                <option value="imperial">Imperial (inches)</option>
+                <option value="metric">Metric (cm)</option>
+            </select>
+
+            <!-- Step 2: Select Product (dynamically populated) -->
+            <label for="product">Select Product:</label>
+            <select id="product" required disabled>
+                <option value="">-- Select a Product --</option>
+            </select>
+
+            <!-- Step 3: Enter Dimensions -->
+            <label id="lengthLabel" for="length">Length (ft):</label>
+            <input type="number" id="length" step="0.01" min="0" placeholder="Enter length in feet" required>
+
+            <label id="widthLabel" for="width">Width (ft):</label>
+            <input type="number" id="width" step="0.01" min="0" placeholder="Enter width in feet" required>
+
+            <button type="submit">Calculate</button>
+        </form>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        // Pedestal data from the spreadsheet
+        const pedestalData = {
+            imperial: {
+                "Porcea (2 cm) - 24x24\"": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (2 cm) - 16x32\"": { pedestalsPerSquareMeter: 6.25 },
+                "Porcea (2 cm) - 18x36\"": { pedestalsPerSquareMeter: 4.94 },
+                "Porcea (2 cm) - 16x48\"": { pedestalsPerSquareMeter: 4.17 },
+                "Porcea (2 cm) - 24x36\"": { pedestalsPerSquareMeter: 3.7 },
+                "Porcea (2 cm) - 24x48\"": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (2 cm) - 36x36\"": { pedestalsPerSquareMeter: 4.94 },
+                "Porcea (2 cm) - 48x48\"": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (2 cm) - 48x95\"": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (3 cm) - 24x24\"": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (3 cm) - 16x32\"": { pedestalsPerSquareMeter: 3.13 },
+                "Porcea (3 cm) - 16x48\"": { pedestalsPerSquareMeter: 4.17 },
+                "Porcea (3 cm) - 36x36\"": { pedestalsPerSquareMeter: 1.23 },
+            },
+            metric: {
+                "Porcea (2 cm) - 60x60 CM": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (2 cm) - 40x80 CM": { pedestalsPerSquareMeter: 6.25 },
+                "Porcea (2 cm) - 45x90 CM": { pedestalsPerSquareMeter: 4.94 },
+                "Porcea (2 cm) - 40x120 CM": { pedestalsPerSquareMeter: 4.17 },
+                "Porcea (2 cm) - 60x90 CM": { pedestalsPerSquareMeter: 3.7 },
+                "Porcea (2 cm) - 60x120 CM": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (2 cm) - 90x90 CM": { pedestalsPerSquareMeter: 4.94 },
+                "Porcea (2 cm) - 120x120 CM": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (2 cm) - 120x240 CM": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (3 cm) - 60x60 CM": { pedestalsPerSquareMeter: 2.78 },
+                "Porcea (3 cm) - 40x80 CM": { pedestalsPerSquareMeter: 3.13 },
+                "Porcea (3 cm) - 40x120 CM": { pedestalsPerSquareMeter: 4.17 },
+                "Porcea (3 cm) - 90x90 CM": { pedestalsPerSquareMeter: 1.23 },
+            },
+        };
+
+        // Get references to form elements
+        const unitSelect = document.getElementById("unit");
+        const productSelect = document.getElementById("product");
+        const lengthLabel = document.getElementById("lengthLabel");
+        const widthLabel = document.getElementById("widthLabel");
+        const lengthInput = document.getElementById("length");
+        const widthInput = document.getElementById("width");
+        const resultDiv = document.getElementById("result");
+
+        // Step 1: When unit is selected, update labels, placeholders, and products
+        unitSelect.addEventListener("change", function () {
+            const selectedUnit = unitSelect.value;
+            if (selectedUnit) {
+                // Enable product dropdown
+                productSelect.disabled = false;
+
+                // Clear existing options
+                productSelect.innerHTML = '<option value="">-- Select a Product --</option>';
+
+                // Add new options based on selected unit
+                Object.keys(pedestalData[selectedUnit]).forEach((product) => {
+                    const option = document.createElement("option");
+                    option.value = product;
+                    option.textContent = product;
+                    productSelect.appendChild(option);
+                });
+
+                // Update labels and placeholders based on unit
+                if (selectedUnit === "imperial") {
+                    lengthLabel.textContent = "Length (ft):";
+                    widthLabel.textContent = "Width (ft):";
+                    lengthInput.placeholder = "Enter length in feet";
+                    widthInput.placeholder = "Enter width in feet";
+                } else {
+                    lengthLabel.textContent = "Length (m):";
+                    widthLabel.textContent = "Width (m):";
+                    lengthInput.placeholder = "Enter length in meters";
+                    widthInput.placeholder = "Enter width in meters";
+                }
+            } else {
+                // Disable product dropdown if no unit is selected
+                productSelect.disabled = true;
+            }
+        });
+
+        // Step 2: Form submission handler
+        document.getElementById("pedestalForm").addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent form submission
+
+            // Get user inputs
+            const selectedUnit = unitSelect.value;
+            const product = productSelect.value;
+            const length = parseFloat(lengthInput.value);
+            const width = parseFloat(widthInput.value);
+
+            // Validate inputs
+            if (!selectedUnit || !product || isNaN(length) || isNaN(width) || length <= 0 || width <= 0) {
+                resultDiv.textContent = "Please fill in all fields correctly.";
+                return;
+            }
+
+            // Calculate area based on unit
+            let area;
+            if (selectedUnit === "imperial") {
+                // Convert feet to meters (1 foot = 0.3048 meters)
+                area = (length * 0.3048) * (width * 0.3048);
+            } else {
+                // Metric (meters)
+                area = length * width;
+            }
+
+            // Calculate pedestals needed
+            const pedestalsNeeded = Math.ceil(area * pedestalData[selectedUnit][product].pedestalsPerSquareMeter);
+
+            // Display result
+            resultDiv.textContent = `You need ${pedestalsNeeded} pedestals for an area of ${area.toFixed(2)} square meters.`;
+        });
+    </script>
+</body>
+</html>
