@@ -185,8 +185,8 @@
             // Calculate area based on unit
             let area;
             if (selectedUnit === "imperial") {
-                // Imperial (feet)
-                area = length * width; // Area in square feet
+                // Imperial (feet): Convert to square meters
+                area = (length * width) / 10.764; // Convert sqft to sqm
             } else {
                 // Metric (meters)
                 area = length * width; // Area in square meters
@@ -200,9 +200,9 @@
 
             // Display result
             if (selectedUnit === "imperial") {
-                resultDiv.textContent = `You need ${pedestalsNeeded} pedestals for an area of ${area.toFixed(2)} square feet.`;
+                resultDiv.textContent = `You need approximately ${pedestalsNeeded} pedestals for an area of ${(length * width).toFixed(2)} square feet.`;
             } else {
-                resultDiv.textContent = `You need ${pedestalsNeeded} pedestals for an area of ${area.toFixed(2)} square meters.`;
+                resultDiv.textContent = `You need approximately ${pedestalsNeeded} pedestals for an area of ${area.toFixed(2)} square meters.`;
             }
         });
     </script>
