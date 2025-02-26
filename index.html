@@ -9,12 +9,28 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        .form-container {
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .calculator {
+            flex: 1;
             max-width: 400px;
-            margin: 0 auto;
             padding: 20px;
             border: 1px solid #ccc;
             border-radius: 5px;
+        }
+        .info-column {
+            flex: 1;
+            max-width: 400px;
+            padding: 20px;
+            background-color: #f0f0f0; /* Grey background */
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #666;
         }
         label {
             display: block;
@@ -39,14 +55,11 @@
         button:hover {
             background-color: #0056b3;
         }
-        .result {
+        .input-info, .results {
             margin-top: 20px;
-            font-weight: bold;
         }
-        .disclaimer {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #666;
+        .input-info h3, .results h3 {
+            margin-top: 0;
         }
         .radio-group {
             display: flex;
@@ -58,43 +71,67 @@
             align-items: center;
             gap: 5px;
         }
+        .disclaimer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
-    <div class="form-container">
-        <h1>Pedestal Calculator</h1>
-        <form id="pedestalForm">
-            <!-- Step 1: Select Unit (Radio Buttons) -->
-            <div class="radio-group">
-                <label>
-                    <input type="radio" name="unit" value="imperial" required> Imperial (feet)
-                </label>
-                <label>
-                    <input type="radio" name="unit" value="metric" required> Metric (meters)
-                </label>
+    <div class="container">
+        <!-- Left Column: Calculator -->
+        <div class="calculator">
+            <h1>Pedestal Calculator</h1>
+            <form id="pedestalForm">
+                <!-- Step 1: Select Unit (Radio Buttons) -->
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="unit" value="imperial" required> Imperial (feet)
+                    </label>
+                    <label>
+                        <input type="radio" name="unit" value="metric" required> Metric (meters)
+                    </label>
+                </div>
+
+                <!-- Step 2: Select Product (dynamically populated) -->
+                <label for="product">Select Product:</label>
+                <select id="product" required disabled>
+                    <option value="">-- Select a Product --</option>
+                </select>
+
+                <!-- Step 3: Enter Dimensions -->
+                <label id="lengthLabel" for="length">Length (ft):</label>
+                <input type="number" id="length" step="0.01" min="0" placeholder="Enter length in feet" required>
+
+                <label id="widthLabel" for="width">Width (ft):</label>
+                <input type="number" id="width" step="0.01" min="0" placeholder="Enter width in feet" required>
+
+                <button type="submit">Calculate</button>
+            </form>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                <p><strong>DISCLAIMER:</strong> Porcea Stone provides this tool as a quick calculator asset however will not be held responsible for the validity of input or outputs of results. This pedestal calculator assumes a large square or rectangular area. If there are many small terraces or walkways, the pedestals are not shared as efficiently and additional units will be required. The final quantities and takeoffs should be done by the installer on site.</p>
+            </div>
+        </div>
+
+        <!-- Right Column: Information (Hidden by default) -->
+        <div class="info-column" id="infoColumn">
+            <p id="placeholderText">No calculation added yet. Calculation results will show up here.</p>
+
+            <!-- Input Information (Hidden by default) -->
+            <div class="input-info" id="inputInfo" style="display: none;">
+                <h3>Input Information</h3>
+                <p><strong>Total Area:</strong> <span id="totalArea"></span></p>
+                <p><strong>Product:</strong> <span id="selectedProduct"></span></p>
             </div>
 
-            <!-- Step 2: Select Product (dynamically populated) -->
-            <label for="product">Select Product:</label>
-            <select id="product" required disabled>
-                <option value="">-- Select a Product --</option>
-            </select>
-
-            <!-- Step 3: Enter Dimensions -->
-            <label id="lengthLabel" for="length">Length (ft):</label>
-            <input type="number" id="length" step="0.01" min="0" placeholder="Enter length in feet" required>
-
-            <label id="widthLabel" for="width">Width (ft):</label>
-            <input type="number" id="width" step="0.01" min="0" placeholder="Enter width in feet" required>
-
-            <button type="submit">Calculate</button>
-        </form>
-
-        <div class="result" id="result"></div>
-
-        <!-- Disclaimer -->
-        <div class="disclaimer">
-            <p><strong>DISCLAIMER:</strong> Porcea Stone provides this tool as a quick calculator asset however will not be held responsible for the validity of input or outputs of results. This pedestal calculator assumes a large square or rectangular area. If there are many small terraces or walkways, the pedestals are not shared as efficiently and additional units will be required. The final quantities and takeoffs should be done by the installer on site.</p>
+            <!-- Results (Hidden by default) -->
+            <div class="results" id="results" style="display: none;">
+                <h3>Results</h3>
+                <p><strong>No of pedestals:</strong> approximately <span id="pedestalsNeeded"></span></p>
+            </div>
         </div>
     </div>
 
@@ -140,7 +177,13 @@
         const widthLabel = document.getElementById("widthLabel");
         const lengthInput = document.getElementById("length");
         const widthInput = document.getElementById("width");
-        const resultDiv = document.getElementById("result");
+        const totalAreaSpan = document.getElementById("totalArea");
+        const selectedProductSpan = document.getElementById("selectedProduct");
+        const pedestalsNeededSpan = document.getElementById("pedestalsNeeded");
+        const infoColumnDiv = document.getElementById("infoColumn");
+        const placeholderText = document.getElementById("placeholderText");
+        const inputInfoDiv = document.getElementById("inputInfo");
+        const resultsDiv = document.getElementById("results");
 
         // Step 1: When unit is selected (radio button), update labels, placeholders, and products
         unitRadios.forEach((radio) => {
@@ -192,7 +235,7 @@
 
             // Validate inputs
             if (!selectedUnit || !product || isNaN(length) || isNaN(width) || length <= 0 || width <= 0) {
-                resultDiv.textContent = "Please fill in all fields correctly.";
+                alert("Please fill in all fields correctly.");
                 return;
             }
 
@@ -212,12 +255,17 @@
             // Round up to the nearest 20
             pedestalsNeeded = Math.ceil(pedestalsNeeded / 20) * 20;
 
-            // Display result
-            if (selectedUnit === "imperial") {
-                resultDiv.textContent = `You need approximately ${pedestalsNeeded} pedestals for an area of ${(length * width).toFixed(2)} square feet.`;
-            } else {
-                resultDiv.textContent = `You need approximately ${pedestalsNeeded} pedestals for an area of ${area.toFixed(2)} square meters.`;
-            }
+            // Display input information
+            totalAreaSpan.textContent = selectedUnit === "imperial" ? `${(length * width).toFixed(2)} sqft` : `${area.toFixed(2)} sqm`;
+            selectedProductSpan.textContent = product;
+
+            // Display results
+            pedestalsNeededSpan.textContent = pedestalsNeeded;
+
+            // Hide placeholder text and show input information and results
+            placeholderText.style.display = "none";
+            inputInfoDiv.style.display = "block";
+            resultsDiv.style.display = "block";
         });
     </script>
 </body>
